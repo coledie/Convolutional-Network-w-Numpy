@@ -54,10 +54,10 @@ class MaxPool(Module):
         assert all([value % self.stride == 0 for value in x.shape])
 
         x_split = []
-        for i in range(0, x.shape[0], self.stride):
+        for i in range(0, x.shape[0]-self.size+1, self.stride):
             x_split.append([])
-            for j in range(0, x.shape[1], self.stride):
-                x_split[-1].append(x[i:i+self.stride, j:j+self.stride])
+            for j in range(0, x.shape[1]-self.size+1, self.stride):
+                x_split[-1].append(x[i:i+self.size, j:j+self.size])
 
         return np.max(x_split, axis=(-2, -1))
 
