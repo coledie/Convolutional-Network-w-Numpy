@@ -20,7 +20,7 @@ class Linear(Module):
         return np.matmul(self.weight, x)
 
     def backward(self, error):
-        self.weight -= error.reshape((-1, 1)) * 10**-4 * self.inputs
+        self.weight -= error.reshape((-1, 1)) * self.inputs
         return np.matmul(error, self.weight)
 
 

@@ -22,7 +22,7 @@ class Sequential:
         """
         Update weights according to directional derivative to minimize error.
         """
-        error = self.loss_prime(real, target)
+        error = self.loss_prime(real, target) * self.learning_rate
         
         for module in self.modules[::-1]:
             error = module.backward(error)
