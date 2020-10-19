@@ -11,6 +11,8 @@ from network import *
 from activation import *
 from layer import *
 from loss import *
+from transform import *
+
 
 def onehot(value, n_class):
     output = np.zeros(n_class)
@@ -38,7 +40,11 @@ if __name__ == '__main__':
     cost = CrossEntropyLoss()
 
     network = Sequential([
-        Linear(784, 32),
+        Reshape((28, 28)),
+        ReLu(),
+        MaxPool(2),
+        Reshape((-1)),
+        Linear(784 // 2**2, 32),
         Sigmoid(),
         Linear(32, N_CLASS),
         Sigmoid(),

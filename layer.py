@@ -43,21 +43,35 @@ class MaxPool(Module):
         self.stride = stride or size
 
     def forward(self, x):
-        # Split up into blocks based on kernel size and stride
-        s = self.stride
-        x_split = []
-        for i in range(x.shape[0] // self.stride):
-            x_split.append([])
-            for j in range(x.shape[1] // self.stride):
-                x_split[-1].append(x[i*s:(i+1)*s, j*s:(j+1)*s])
+        """
+        Forward pass.
 
-        output = np.max(x_split, axis=-1)
-        return output
+        Parameters
+        ----------
+        x: ndarray
+            Square input image.
+        """
+        assert all([value % self.stride == 0 for value in x.shape])
+
+        x_split = []
+        for i in range(0, x.shape[0], self.stride):
+            x_split.append([])
+            for j in range(0, x.shape[1], self.stride):
+                x_split[-1].append(x[i:i+self.stride, j:j+self.stride])
+
+        return np.max(x_split, axis=(-2, -1))
 
     def backward(self, error):
-        # Assumes x is one dimensional
+        """
+        Backward pass.
+
+        Parameters
+        ----------
+        error: ndarray
+            1d error.
+        """
         error = error.reshape((-1, 1))
-        return np.stack([error] * self.size, axis=-1).flatten()
+        return np.stack([error] * self.size**2, axis=-1).flatten()
 
 
 __ALL__ = [Linear, MaxPool]
