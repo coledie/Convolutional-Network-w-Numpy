@@ -1,7 +1,9 @@
 """
 Convolutional neural network with Numpy.
 
-Modelled after the PyTorch implementation: 
+Base numpy nn implementation: https://www.kaggle.com/coledie/neural-network-w-numpy
+MNIST Model from:
+https://www.kaggle.com/andradaolteanu/convolutional-neural-nets-cnns-explained#3.-Convolutional-Neural-Networks-%F0%9F%8F%95%F0%9F%8F%9E%F0%9F%9B%A4%F0%9F%8F%9C%F0%9F%8F%96%F0%9F%8F%9D%F0%9F%8F%94
 """
 import numpy as np
 
@@ -12,28 +14,6 @@ def onehot(value, n_class):
     output[value] = 1.
 
     return output
-
-
-def sigmoid(x):
-    return np.tanh(x)
-
-def sigmoid_prime(x):
-    return 1.0 - x**2
-
-
-LEAK = 0
-def relu(x):
-    x[x < 0] = LEAK * x
-    return x
-
-def relu_prime(x):
-    return np.where(x > 0, 1, LEAK)
-
-
-activation_map = {
-    'sigmoid': {"f": sigmoid, "f '": sigmoid_prime},
-    'relu': {"f": relu, "f '": relu_prime},
-    }
 
 
 class MeanSquaredError:
@@ -58,100 +38,148 @@ class CrossEntropyLoss:
         return (1 / len(real)) * (real - target)
 
 
-class NN:
-    def __init__(self, layers, layer_activations, loss_prime, learning_rate=.5):
-        self.layers = layers
-        self.layer_activations = layer_activations
-        self.learning_rate = learning_rate
+class Module:
+    """
+    Differentiable piece of neural network.
+
+    self.weight: ndarray
+        Weights of module.
+    self.bias: ndarray or None
+        Bias of module.
+    """
+    def __init__(self):
+        pass
+
+    def forward(self, x: np.ndarray) -> np.ndarray:
+        """
+        Forward pass.
+        """
+        raise NotImplementedError(f"{type(self)}.forward not implemented!")
+
+    def backward(self, error: np.ndarray) -> np.ndarray:
+        """
+        Backward pass.
+        """
+        raise NotImplementedError(f"{type(self)}.forward not backward!")
+
+
+class ReLu:
+    def __init__(self, leak):
+        super().__init__()
+
+        self.leak = leak
+
+    def forward(self, x):
+        self.output = np.copy(x)
+        self.output[self.output < 0] *= self.leak
+        return self.output
+
+    def backward(self, error):
+        return (np.where(x > 0, 1, self.leak)) * error
+
+
+class Sigmoid:
+    def forward(self, x):
+        self.output = np.tanh(x)
+        return self.output
+
+    def backward(self, error):
+        return (1.0 - self.output**2) * error
+
+
+class Linear:
+    def __init__(self, n_inputs, n_outputs):
+        super().__init__()
+
+        self.n_inputs = n_inputs
+        self.n_outputs = n_outputs
+
+        self.weight = np.random.uniform(-.1, .1, size=(self.n_outputs, self.n_inputs))
+
+    def forward(self, x):
+        self.inputs = x
+        return np.matmul(self.weight, x)
+
+    def backward(self, error):
+        self.weight -= error.reshape((-1, 1)) * 10**-4 * self.inputs
+        return np.matmul(error, self.weight)
+
+
+class Sequential:
+    def __init__(self, modules, loss_prime, learning_rate):
+        self.modules = modules
         self.loss_prime = loss_prime
-
-        assert len(self.layer_activations) == len(self.layers) - 1, "Number activations incorrect."
-
-        self.w = []
-        for i, layer in enumerate(self.layers[:-1]):
-            # w[in, out]
-            matrix = np.random.uniform(-.1, .1, size=(layer, self.layers[i+1]))
-
-            self.w.append(matrix)
+        self.learning_rate = learning_rate
 
     def forward(self, x):
         """
         Network estimate y given x.
         """
-        fires = [np.copy(x)]
+        for module in self.modules:
+            x = module.forward(x)
 
-        for i in range(len(self.layers) - 1):
-            x = np.matmul(fires[-1], self.w[i])
+        return x
 
-            fires.append(activation_map[self.layer_activations[i]]['f'](x))
-
-        return fires[-1], fires
-
-    def backward(self, real, target, fires):
+    def backward(self, real, target):
         """
         Update weights according to directional derivative to minimize error.
         """
-        ## Error for output layer
-        error = self.loss_prime(fires[-1], target)
+        error = self.loss_prime(real, target)
         
-        delta = activation_map[self.layer_activations[-1]]["f '"](fires[-1]) * error
-
-        deltas = [delta]
-
-        ## Backpropogate error
-        for i in range(len(self.layers) - 3, -1, -1):
-            error = np.sum(deltas[0] * self.w[i+1], axis=1)
-
-            delta = activation_map[self.layer_activations[i]]["f '"](fires[i+1]) * error
-
-            deltas.insert(0, delta)
-
-        for i in range(len(self.layers) - 2, -1, -1):
-            self.w[i] -= self.learning_rate * deltas[i] * fires[i].reshape((-1, 1))
+        for module in self.modules[::-1]:
+            error = module.backward(error)
 
 
-import pandas as pd
-train_dataset = pd.read_csv("mnist_train.csv")
-test_dataset = pd.read_csv("mnist_test.csv")
+if __name__ == '__main__':
+    np.random.seed(0)
 
-train_X, train_y = train_dataset[train_dataset.columns[1:]].values, train_dataset['label'].values
-test_X, test_y = test_dataset[test_dataset.columns[1:]].values, test_dataset['label'].values
+    ## Load datasets
+    import pandas as pd
+    train_dataset = pd.read_csv("mnist_train.csv")
+    test_dataset = pd.read_csv("mnist_test.csv")
 
-## Setup NN
-N_CLASS = 10
-EPOCH = 10
+    train_X, train_y = train_dataset[train_dataset.columns[1:]].values, train_dataset['label'].values
+    test_X, test_y = test_dataset[test_dataset.columns[1:]].values, test_dataset['label'].values
 
-cost = CrossEntropyLoss()
+    ## Setup NN
+    N_CLASS = 10
+    EPOCH = 10
 
-network = NN([784, 32, N_CLASS], ['sigmoid', 'sigmoid'], cost.derivative, 10**-4)
+    cost = CrossEntropyLoss()
 
-## Train
-error = 0
-for e in range(EPOCH):
-    # shuffle dataset between epoch
-    idx = [i for i in range(len(train_y))]
-    np.random.shuffle(idx)
-    train_X = train_X[idx]
-    train_y = train_y[idx]
+    network = Sequential([
+        Linear(784, 32),
+        Sigmoid(),
+        Linear(32, N_CLASS),
+        Sigmoid(),
+    ], cost.derivative, 10**-4)
 
-    for i, expected in enumerate(train_y):
-        real, fires = network.forward(train_X[i])
+    ## Train
+    error = 0
+    for e in range(EPOCH):
+        # shuffle dataset between epoch
+        idx = [i for i in range(len(train_y))]
+        np.random.shuffle(idx)
+        train_X = train_X[idx]
+        train_y = train_y[idx]
 
-        target = onehot(expected, N_CLASS)
-        network.backward(real, target, fires)
+        for i, expected in enumerate(train_y):
+            real = network.forward(train_X[i])
 
-        error += cost(real, target)
+            target = onehot(expected, N_CLASS)
+            network.backward(real, target)
 
-    if not e % 1:
-        print(error)
-        error = 0
+            error += cost(real, target)
 
-        
-## Evaluate
-n_correct = 0
-for i, expected in enumerate(test_y):
-    real, fires = network.forward(test_X[i])
+        if not e % 1:
+            print(error)
+            error = 0
+            
+    ## Evaluate
+    n_correct = 0
+    for i, expected in enumerate(test_y):
+        real = network.forward(test_X[i])
 
-    n_correct += np.argmax(real) == expected
-
-print(f"Correct: {n_correct / test_y.size:.2f}")
+        n_correct += np.argmax(real) == expected
+    
+    print(f"Correct: {n_correct / test_y.size:.2f}")
