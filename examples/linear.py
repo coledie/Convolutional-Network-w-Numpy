@@ -1,17 +1,9 @@
 """
-Convolutional neural network with Numpy.
-
-Base numpy nn implementation: https://www.kaggle.com/coledie/neural-network-w-numpy
-MNIST Model from:
-https://www.kaggle.com/andradaolteanu/convolutional-neural-nets-cnns-explained
+Neural network with Numpy.
 """
 import numpy as np
 
-from network import *
-from activation import *
-from layer import *
-from loss import *
-from transform import *
+from numpynets import *
 
 
 def onehot(value, n_class):
@@ -40,18 +32,10 @@ if __name__ == '__main__':
     cost = CrossEntropyLoss()
 
     network = Sequential([
-        Reshape((28, 28)),
-        Convolution(1, 16, 3),
-        ReLu(),
-        MaxPool(2),
-        Convolution(16, 10, 3),
-        ReLu(),
-        MaxPool(2),
-        Reshape((-1)),
-        Linear(250, 128),
-        ReLu(),
+        Linear(784, 128),
+        Sigmoid(),
         Linear(128, 64),
-        ReLu(),
+        Sigmoid(),
         Linear(64, N_CLASS),
         Sigmoid(),
     ], cost.derivative, 10**-4)

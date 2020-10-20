@@ -3,7 +3,7 @@ Activation functions.
 """
 import numpy as np
 
-from module import Module
+from numpynets.module import Module
 
 
 class ReLu(Module):

@@ -4,7 +4,7 @@ Layer implementations.
 import numpy as np
 from scipy.signal import convolve
 
-from module import Module
+from numpynets.module import Module
 
 
 class Linear(Module):

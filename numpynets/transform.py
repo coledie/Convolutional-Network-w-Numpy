@@ -1,7 +1,7 @@
 """
 Array transforms.
 """
-from module import Module
+from numpynets.module import Module
 
 
 class Reshape(Module):

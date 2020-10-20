@@ -1,4 +1,5 @@
 # Numpy Neural Networks
+
 PyTorch sequential style neural network implementation in Numpy.
 
 ## Setup
