@@ -21,10 +21,11 @@ class Linear(Module):
         self.inputs = x
         return np.matmul(self.weight, x) + self.bias
 
-    def backward(self, error):
-        self.weight -= error.reshape((-1, 1)) * self.inputs
-        self.bias -= np.mean(error.reshape((-1, 1)) * self.inputs, axis=1)
-        return np.matmul(error, self.weight)
+    def backward(self, delta):
+        error = np.matmul(delta, self.weight)
+        self.weight -= delta.reshape((-1, 1)) * self.inputs
+        self.bias -= np.mean(delta.reshape((-1, 1)) * self.inputs, axis=1)
+        return error
 
 
 class MaxPool(Module):
@@ -109,10 +110,11 @@ class Convolution(Module):
 
         return output
 
-    def backward(self, error):
-        print(error.shape, self.inputs.shape, self.weight.shape)
-        self.weight -= error.reshape((-1, 1)) * self.inputs
-        return np.matmul(error, self.weight)
+    def backward(self, delta):
+        error = np.matmul(delta, self.weight)
+        print(self.weight.shape, error.shape, self.inputs.shape)
+        self.weight -= 0
+        return return error
 
 
 __ALL__ = [Linear, MaxPool, Convolution]
