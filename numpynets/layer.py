@@ -65,7 +65,7 @@ class MaxPool(Module):
 
         return np.max(x_split, axis=(-2, -1))
 
-    def backward(self, error):
+    def backward(self, e):
         """
         Backward pass.
 
@@ -74,9 +74,15 @@ class MaxPool(Module):
         error: ndarray
             1d error.
         """
-        error = error.reshape((-1, 1))
-        return np.stack([error] * self.kernel_size**2, axis=-1).flatten()
+        dims = len(e.shape)
+        for i in range(dims):
+            temp_shape, new_shape = list(e.shape), list(e.shape)
+            temp_shape.insert(dims-i, 1)
+            new_shape[dims-i-1] *= self.kernel_size
 
+            e = np.stack([e.reshape(temp_shape)] * self.kernel_size, axis=dims-i).reshape(new_shape)
+        print(e.shape)
+        return e
 
 class Convolution(Module):
     """
@@ -103,6 +109,7 @@ class Convolution(Module):
         return output
 
     def backward(self, error):
+        print(error.shape, self.inputs.shape, self.weight.shape)
         self.weight -= error.reshape((-1, 1)) * self.inputs
         return np.matmul(error, self.weight)
 
