@@ -1,5 +1,5 @@
-# Convolutional-Network-w-Numpy
-Convolutional neural network with Numpy.
+# Numpy Neural Networks
+PyTorch sequential style neural network implementation in Numpy.
 
 ## Setup
 
@@ -11,8 +11,8 @@ Convolutional neural network with Numpy.
 python3 -m pip install -r requirements.txt
 ```
 
-3. Run convnn
+3. Run example
 
 ``` bash
-python3 convnn.py
+python3 examples/<any>.py
 ```
