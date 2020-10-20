@@ -15,13 +15,15 @@ class Linear(Module):
         self.n_outputs = n_outputs
 
         self.weight = np.random.uniform(-.1, .1, size=(self.n_outputs, self.n_inputs))
+        self.bias = np.random.uniform(-.1, .1, size=self.n_outputs)
 
     def forward(self, x):
         self.inputs = x
-        return np.matmul(self.weight, x)
+        return np.matmul(self.weight, x) + self.bias
 
     def backward(self, error):
         self.weight -= error.reshape((-1, 1)) * self.inputs
+        self.bias -= np.mean(error.reshape((-1, 1)) * self.inputs, axis=1)
         return np.matmul(error, self.weight)
 
 
