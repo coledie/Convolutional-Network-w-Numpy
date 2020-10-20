@@ -2,6 +2,7 @@
 Layer implementations.
 """
 import numpy as np
+from scipy.signal import convolve
 
 from module import Module
 
@@ -30,17 +31,17 @@ class MaxPool(Module):
 
     Parameters
     ----------
-    size: int
+    kernel_size: int
         Size of kernel.
     stride: int, default=size
         How far kernel moves each step.
     padding: int
     """
-    def __init__(self, size, stride=None):
+    def __init__(self, kernel_size, stride=None):
         super().__init__()
         
-        self.size = size
-        self.stride = stride or size
+        self.kernel_size = kernel_size
+        self.stride = stride or kernel_size
 
     def forward(self, x):
         """
@@ -51,13 +52,14 @@ class MaxPool(Module):
         x: ndarray
             Square input image.
         """
-        assert all([value % self.stride == 0 for value in x.shape])
+        if len(x.shape) <= 2:
+            x.reshape([1] + list(x.shape))
 
-        x_split = []
-        for i in range(0, x.shape[0]-self.size+1, self.stride):
-            x_split.append([])
-            for j in range(0, x.shape[1]-self.size+1, self.stride):
-                x_split[-1].append(x[i:i+self.size, j:j+self.size])
+        x_split = np.empty(shape=list(x.shape[:-2]) + [v // self.kernel_size for v in x.shape[-2:]] + [self.kernel_size, self.kernel_size])
+
+        for i, ii in enumerate(range(0, x.shape[0]-self.kernel_size+1, self.stride)):
+            for j, jj in enumerate(range(0, x.shape[1]-self.kernel_size+1, self.stride)):
+                x_split[:, i, j] = x[:, ii:ii+self.kernel_size, jj:jj+self.kernel_size]
 
         return np.max(x_split, axis=(-2, -1))
 
@@ -71,7 +73,36 @@ class MaxPool(Module):
             1d error.
         """
         error = error.reshape((-1, 1))
-        return np.stack([error] * self.size**2, axis=-1).flatten()
+        return np.stack([error] * self.kernel_size**2, axis=-1).flatten()
 
 
-__ALL__ = [Linear, MaxPool]
+class Convolution(Module):
+    """
+    2d convolutional layer.
+    """
+    def __init__(self, in_channels, out_channels, kernel_size):
+        super().__init__()
+
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.kernel_size = kernel_size
+
+        self.weight = np.random.uniform(-.1, .1, size=(self.out_channels, 1, self.kernel_size, self.kernel_size))
+
+    def forward(self, x):
+        self.inputs = x
+        if len(x.shape) <= 2:
+            x = x.reshape([1, *x.shape])
+
+        output = np.empty([self.out_channels] + [v - self.kernel_size+1 for v in x.shape[1:]])
+        for i in range(self.out_channels):
+            output[i] = np.sum(convolve(x, self.weight[i], mode='valid'), axis=0)
+
+        return output
+
+    def backward(self, error):
+        self.weight -= error.reshape((-1, 1)) * self.inputs
+        return np.matmul(error, self.weight)
+
+
+__ALL__ = [Linear, MaxPool, Convolution]
