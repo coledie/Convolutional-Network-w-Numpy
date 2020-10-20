@@ -3,7 +3,7 @@ Convolutional neural network with Numpy.
 
 Base numpy nn implementation: https://www.kaggle.com/coledie/neural-network-w-numpy
 MNIST Model from:
-https://www.kaggle.com/andradaolteanu/convolutional-neural-nets-cnns-explained#3.-Convolutional-Neural-Networks-%F0%9F%8F%95%F0%9F%8F%9E%F0%9F%9B%A4%F0%9F%8F%9C%F0%9F%8F%96%F0%9F%8F%9D%F0%9F%8F%94
+https://www.kaggle.com/andradaolteanu/convolutional-neural-nets-cnns-explained
 """
 import numpy as np
 
@@ -41,12 +41,18 @@ if __name__ == '__main__':
 
     network = Sequential([
         Reshape((28, 28)),
+        Convolution(1, 16, 3),
+        ReLu(),
+        MaxPool(2),
+        Convolution(16, 10, 3),
         ReLu(),
         MaxPool(2),
         Reshape((-1)),
-        Linear(784 // 2**2, 32),
-        Sigmoid(),
-        Linear(32, N_CLASS),
+        Linear(250, 128),
+        ReLu(),
+        Linear(128, 64),
+        ReLu(),
+        Linear(64, N_CLASS),
         Sigmoid(),
     ], cost.derivative, 10**-4)
 
