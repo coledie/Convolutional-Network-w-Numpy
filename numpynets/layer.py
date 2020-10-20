@@ -81,8 +81,9 @@ class MaxPool(Module):
             new_shape[dims-i-1] *= self.kernel_size
 
             e = np.stack([e.reshape(temp_shape)] * self.kernel_size, axis=dims-i).reshape(new_shape)
-        print(e.shape)
+
         return e
+
 
 class Convolution(Module):
     """
