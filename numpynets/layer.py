@@ -96,6 +96,7 @@ class Convolution(Module):
         self.kernel_size = kernel_size
 
         self.weight = np.random.uniform(-.1, .1, size=(self.out_channels, 1, self.kernel_size, self.kernel_size))
+        self.bias = np.random.uniform(-.1, .1, size=self.out_channels)
 
     def forward(self, x):
         self.inputs = x
@@ -104,7 +105,7 @@ class Convolution(Module):
 
         output = np.empty([self.out_channels] + [v - self.kernel_size+1 for v in x.shape[1:]])
         for i in range(self.out_channels):
-            output[i] = np.sum(convolve(x, self.weight[i], mode='valid'), axis=0)
+            output[i] = np.sum(convolve(x, self.weight[i], mode='valid'), axis=0) + self.bias[i]
 
         return output
 
@@ -122,6 +123,8 @@ class Convolution(Module):
                 yy = self.inputs.shape[-2] - self.kernel_size + y_offset + 1
                 input_partition = self.inputs[:, y_offset:yy, x_offset:xx] if len(self.inputs.shape) == 3 else self.inputs[y_offset:yy, x_offset:xx]
                 self.weight[:, 0, y_offset, x_offset] -= np.sum(delta * input_partition, axis=tuple(range(len(delta.shape)))[1:])
+
+        self.bias -= np.mean(delta, axis=tuple(range(len(delta.shape)))[1:])
 
         return error
 
