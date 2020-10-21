@@ -55,6 +55,7 @@ class MaxPool(Module):
         x: ndarray
             Square input image.
         """
+        self.input_shape = x.shape
         if len(x.shape) <= 2:
             x.reshape([1] + list(x.shape))
 
@@ -67,28 +68,25 @@ class MaxPool(Module):
         return np.max(x_split, axis=(-2, -1))
 
     def backward(self, e):
-        """
-        Backward pass.
-
-        Parameters
-        ----------
-        error: ndarray
-            1d error.
-        """
         dims = len(e.shape)
-        for i in range(dims):
+        for i in range(2):
             temp_shape, new_shape = list(e.shape), list(e.shape)
             temp_shape.insert(dims-i, 1)
             new_shape[dims-i-1] *= self.kernel_size
 
             e = np.stack([e.reshape(temp_shape)] * self.kernel_size, axis=dims-i).reshape(new_shape)
 
-        return e
+        output = np.zeros(self.input_shape)
+        output[:, :e.shape[-2], :e.shape[-1]] = e
+
+        return output
 
 
 class Convolution(Module):
     """
     2d convolutional layer.
+
+    Derivation: https://compsci682-sp18.github.io/docs/conv2d_discuss.pdf
     """
     def __init__(self, in_channels, out_channels, kernel_size):
         super().__init__()
@@ -111,10 +109,21 @@ class Convolution(Module):
         return output
 
     def backward(self, delta):
-        error = np.matmul(delta, self.weight)
-        print(self.weight.shape, error.shape, self.inputs.shape)
-        self.weight -= 0
-        return return error
+        error = np.empty([1, *self.inputs.shape[-2:]])
+        for i in range(self.out_channels):
+            error[0] += convolve(delta[i], self.weight[i, 0, ::-1, ::-1], mode='full')
+        error = np.repeat(error, self.in_channels, axis=0)
+
+        delta = delta.reshape([self.out_channels, 1] + list(delta.shape[1:]))
+        new_delta = np.zeros(self.weight.shape)
+        for y_offset in range(self.kernel_size):
+            for x_offset in range(self.kernel_size):
+                xx = self.inputs.shape[-1] - self.kernel_size + x_offset + 1
+                yy = self.inputs.shape[-2] - self.kernel_size + y_offset + 1
+                input_partition = self.inputs[:, y_offset:yy, x_offset:xx] if len(self.inputs.shape) == 3 else self.inputs[y_offset:yy, x_offset:xx]
+                self.weight[:, 0, y_offset, x_offset] -= np.sum(delta * input_partition, axis=tuple(range(len(delta.shape)))[1:])
+
+        return error
 
 
 __ALL__ = [Linear, MaxPool, Convolution]

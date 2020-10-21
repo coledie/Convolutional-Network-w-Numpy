@@ -30,7 +30,7 @@ if __name__ == '__main__':
 
     ## Setup NN
     N_CLASS = 10
-    EPOCH = 10
+    EPOCH = 5
 
     cost = CrossEntropyLoss()
 
@@ -67,6 +67,10 @@ if __name__ == '__main__':
             network.backward(real, target)
 
             error += cost(real, target)
+
+            if i % len(train_y) // 8 == len(train_y) // 8 - 1:
+                print(error)
+                error = 0
 
         if not e % 1:
             print(error)
