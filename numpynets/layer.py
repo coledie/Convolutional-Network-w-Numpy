@@ -113,13 +113,12 @@ class Convolution(Module):
         return output
 
     def backward(self, delta):
-        error = np.empty([1, *self.inputs.shape[-2:]])
+        error = np.zeros([1, *self.inputs.shape[-2:]])
         for i in range(self.out_channels):
             error[0] += convolve(delta[i], self.weight[i, 0, ::-1, ::-1], mode='full')
         error = np.repeat(error, self.in_channels, axis=0)
 
         delta = delta.reshape([self.out_channels, 1] + list(delta.shape[1:]))
-        new_delta = np.zeros(self.weight.shape)
         for y_offset in range(self.kernel_size):
             for x_offset in range(self.kernel_size):
                 xx = self.inputs.shape[-1] - self.kernel_size + x_offset + 1
