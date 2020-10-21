@@ -68,6 +68,9 @@ class MaxPool(Module):
         return np.max(x_split, axis=(-2, -1))
 
     def backward(self, e):
+        # output = np.zeros(self.input_shape)
+        # output[self.max_locs] = e  # TODO shape of max_locs / may not give desired
+
         dims = len(e.shape)
         for i in range(2):
             temp_shape, new_shape = list(e.shape), list(e.shape)
@@ -103,7 +106,7 @@ class Convolution(Module):
         if len(x.shape) <= 2:
             x = x.reshape([1, *x.shape])
 
-        output = np.empty([self.out_channels] + [v - self.kernel_size+1 for v in x.shape[1:]])
+        output = np.empty([self.out_channels] + [v-self.kernel_size+1 for v in x.shape[1:]])
         for i in range(self.out_channels):
             output[i] = np.sum(convolve(x, self.weight[i], mode='valid'), axis=0) + self.bias[i]
 
