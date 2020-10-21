@@ -1,6 +1,7 @@
 # Numpy Neural Networks
 
-PyTorch sequential style neural network implementation in Numpy.
+Numpy implementations of neural networks.
+Meant for readability, ideally to help others implement their own.
 
 ## Setup
 
