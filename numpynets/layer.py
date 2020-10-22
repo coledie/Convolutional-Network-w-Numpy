@@ -59,18 +59,30 @@ class MaxPool(Module):
         if len(x.shape) <= 2:
             x.reshape([1] + list(x.shape))
 
-        x_split = np.empty(shape=list(x.shape[:-2]) + [v // self.kernel_size for v in x.shape[-2:]] + [self.kernel_size, self.kernel_size])
+        output_shape = [value // self.stride for value in x.shape[-2:]]
 
-        for i, ii in enumerate(range(0, x.shape[0]-self.kernel_size+1, self.stride)):
-            for j, jj in enumerate(range(0, x.shape[1]-self.kernel_size+1, self.stride)):
-                x_split[:, i, j] = x[:, ii:ii+self.kernel_size, jj:jj+self.kernel_size]
+        self.max_locs = ([], [], [])  # c, y, x
+        for channel in range(x.shape[0]):
+            for i, ii in enumerate(range(0, x.shape[1]-self.kernel_size+1, self.stride)):
+                for j, jj in enumerate(range(0, x.shape[2]-self.kernel_size+1, self.stride)):
+                    region = x[channel, ii:ii+self.kernel_size, jj:jj+self.kernel_size]
+                    region = region.flatten()
 
-        return np.max(x_split, axis=(-2, -1))
+                    max_loc = np.argmax(region)
+
+                    max_x_loc = max_loc % self.kernel_size
+                    max_y_loc = max_loc // self.kernel_size
+
+                    self.max_locs[0].append(channel)
+                    self.max_locs[1].append(ii + max_y_loc)
+                    self.max_locs[2].append(jj + max_x_loc)
+
+        return x[self.max_locs].reshape([x.shape[0]] + output_shape)
 
     def backward(self, e):
         # output = np.zeros(self.input_shape)
         # output[self.max_locs] = e  # TODO shape of max_locs / may not give desired
-
+        '''
         dims = len(e.shape)
         for i in range(2):
             temp_shape, new_shape = list(e.shape), list(e.shape)
@@ -78,9 +90,10 @@ class MaxPool(Module):
             new_shape[dims-i-1] *= self.kernel_size
 
             e = np.stack([e.reshape(temp_shape)] * self.kernel_size, axis=dims-i).reshape(new_shape)
+        '''
 
         output = np.zeros(self.input_shape)
-        output[:, :e.shape[-2], :e.shape[-1]] = e
+        output[self.max_locs] = e.flatten()
 
         return output
 
