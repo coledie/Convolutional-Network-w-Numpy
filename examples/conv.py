@@ -68,10 +68,6 @@ if __name__ == '__main__':
 
             error += cost(real, target)
 
-            if i % len(train_y) // 8 == len(train_y) // 8 - 1:
-                print(error)
-                error = 0
-
         if not e % 1:
             print(error)
             error = 0
